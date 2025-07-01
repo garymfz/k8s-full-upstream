@@ -3,8 +3,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Install CRI-o"
       import_role:
@@ -51,8 +51,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Install CRI-o"
       import_role:
@@ -79,8 +79,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Install CRI-o"
       import_role:
@@ -97,8 +97,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Ingress Install"
       import_role:
@@ -111,8 +111,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "UPGRADE CLUSTER WITH PLAN VERSION"
       import_role:
@@ -123,8 +123,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Upgrade control-plane nodes"
       import_role:
@@ -136,8 +136,8 @@
   vars:
     - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
   vars_files:
-    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
-    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/k8s-full-upstream/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
     - name: "Upgrade workers version"
       import_role:
