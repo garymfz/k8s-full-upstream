@@ -15,7 +15,7 @@
   ansible.builtin.copy:
     dest: ~/ansible/inventory/{{ env }}/{{ inventory_name }}.ini
     content: |
-      #{{ technology }} HOSTS:
+      #K8S hosts:
 
       [master]
       {% for item in instances_list[:3] %}
