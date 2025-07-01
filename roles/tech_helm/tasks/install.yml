@@ -1,0 +1,27 @@
+# install helm
+
+- name: Download Helm binary
+  ansible.builtin.get_url:
+    url: "https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz"  # Replace with the desired version
+    dest: "/tmp/helm.tar.gz"
+
+- name: Extract Helm binary
+  ansible.builtin.unarchive:
+    src: "/tmp/helm.tar.gz"
+    dest: "/tmp/"
+    remote_src: true
+
+- name: Move Helm binary to system path
+  ansible.builtin.command:
+    cmd: mv /tmp/linux-amd64/helm /usr/local/bin/helm
+  become: yes
+
+- name: Verify Helm installation
+  ansible.builtin.command:
+    cmd: helm version
+  register: helm_version
+  changed_when: false
+
+- name: Show Helm version
+  debug:
+    msg: "Helm version: {{ helm_version.stdout }}"

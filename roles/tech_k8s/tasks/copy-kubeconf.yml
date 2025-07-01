@@ -1,0 +1,21 @@
+---
+#Copies kubeconfig to your machine
+- name: Copies kubeconfig to local user directory
+  fetch:
+    src: /root/.kube/config
+    dest: "~/.kube/conf{{ env }}"
+    flat: yes
+- name: Copy kubeconf to temp direcotry.
+  copy:
+    src: "~/.kube/conf{{ env }}"
+    dest: "~/.kube/conf{{ env }}_tmp"
+- name: Replace IP betwenn https:// & :6443 on kubeconfig
+  replace:
+    path: "~/.kube/conf{{ env }}_tmp"
+    regexp: 'https://[^:]+:6443'
+    replace: "https://{{ env_kube_vip_ip }}:6443"
+- name: Copies kubeconfig to local user directory.
+  fetch:
+    src: /root/.kube/conf{{ env }}_tmp
+    dest: "~/.kube/config"
+    flat: yes

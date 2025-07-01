@@ -1,0 +1,22 @@
+---
+- name: "Adds CRI-O repository"
+  yum_repository:
+   name: cri-o
+   description: CRI-O
+   baseurl: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crioversion }}/rpm/
+   enabled: yes
+   gpgcheck: yes
+   gpgkey: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crioversion }}/rpm/repodata/repomd.xml.key
+
+- name: "Installs CRI-O"
+  dnf:
+    name: cri-o
+    state: latest
+    enablerepo: cri-o
+    disablerepo: "*"
+
+- name: Start cri-o service if not started.
+  ansible.builtin.service:
+    name: crio
+    state: restarted
+    enabled: yes

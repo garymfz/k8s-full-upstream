@@ -1,0 +1,7 @@
+---
+#First kubeconfig copy
+- name: Copies kubeconfig to local user.
+  fetch:
+    src: /root/.kube/config
+    dest: "~/.kube/config"
+    flat: yes

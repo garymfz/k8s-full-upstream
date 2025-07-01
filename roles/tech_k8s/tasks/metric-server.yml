@@ -1,0 +1,37 @@
+---
+- name: Install python library on k8s
+  ansible.builtin.pip:
+    name: kubernetes
+  delegate_to: controlplane1
+  become: yes
+
+- name: Copy metrics-server manifest to target node
+  copy:
+    src: k8s-full-upstream/roles/tech_k8s/files/metric-server.yaml
+    dest: /opt/k8s/repo/metric-server/metric-server.yaml
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Desplegar el metrics-server usando el manifiesto nuestro
+  kubernetes.core.k8s:
+    state: present
+    src: /opt/k8s/repo/metric-server/metric-server.yaml
+  delegate_to: controlplane1
+  become: yes
+
+- name: Reiniciar el Deployment de metrics-server
+  ansible.builtin.shell:
+    cmd: kubectl rollout restart deployment/metrics-server -n kube-system
+  delegate_to: controlplane1
+  become: yes
+
+- name: Verificar el estado del metrics-server
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: metrics-server
+    namespace: kube-system
+  delegate_to: controlplane1
+  register: metrics_server_status
+  become: yes

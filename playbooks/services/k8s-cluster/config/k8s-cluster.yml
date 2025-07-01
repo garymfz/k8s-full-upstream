@@ -1,0 +1,5 @@
+---
+service: "k8s"
+tech: "k8s-cluster"
+inventory_name: "k8s"
+inventory_node: "{{ hostvars['controlplane1']['ansible_host'] }}"

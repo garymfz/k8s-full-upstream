@@ -1,0 +1,16 @@
+{
+    "version": 1,
+    "storageDriverName": "ontap-nas",
+    "managementLIF": {{ netapp_mgmtlif }},
+    "dataLIF": {{ netapp_datalif }},
+    "svm": {{ netapp_svm }},
+    "username": {{ netapp_username}},
+    "password": {{ netapp_password }}, 
+    "storagePrefix": "k8spv_",
+    "aggregate": {{ netapp_aggregate }},
+    "defaults": {
+      "size":   "2G",
+      "spaceReserve": "volume",
+      "snapshotDir": "true"
+    }
+  }

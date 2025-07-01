@@ -1,0 +1,56 @@
+---
+- name: "INSTALL | Add K8S repo"
+  yum_repository:
+   name: kubernetes
+   description: kubernetes
+   baseurl: https://pkgs.k8s.io/core:/stable:/v{{ k8sversion }}/rpm/
+   enabled: yes
+   gpgcheck: yes
+   gpgkey: https://pkgs.k8s.io/core:/stable:/v{{ k8sversion }}/rpm/repodata/repomd.xml.key
+   exclude: kubelet kubeadm kubectl cri-tools kubernetes-cni
+
+- name: "INSTALL | KubeLET"
+  dnf:
+    name: kubelet
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: Disable swap permanently, persist reboots
+  replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+    replace: '#\1\2\3swap\4'
+    backup: yes
+
+- name: "INSTALL | KubeADM"
+  dnf:
+    name: kubeadm
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: "INSTALL | KubeCTL"
+  dnf:
+    name: kubectl
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: Stop swap for kubelet
+  command: "swapoff -a"
+  ignore_errors: true
+
+- name: Start service kubelet, if not started
+  service:
+   name: kubelet
+   enabled: true
+
+#Update networking
+- name: "INSTALL | MODPROBE BRO"
+  command: "modprobe br_netfilter"
+  
+- name: "INSTALL | MODPROBE IP_FORWARD_FILE"
+  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
+  become: true
+
+- name: INSTALL | MODPROBE BDRIGE_NF_FILE
+  shell: "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"
+  become: true

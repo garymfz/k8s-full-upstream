@@ -1,0 +1,11 @@
+---
+- name: restart kubelet
+  service:
+    name: kubelet
+    state: restarted
+
+- name: restart kube-apiserver
+  command: "kubectl delete pod -n kube-system -l component=kube-apiserver"
+
+- name: Reload systemd-modules
+  command: systemctl restart systemd-modules-load

@@ -1,0 +1,79 @@
+---
+## MetalLB Installation & configuration ##
+- name: Add MetalLB Helm repository
+  community.kubernetes.helm_repository:
+    name: metallb
+    repo_url: https://metallb.github.io/metallb
+
+- name: Update Helm repositories
+  ansible.builtin.command:
+    cmd: helm repo update
+
+- name: Create MetalLB namespace
+  kubernetes.core.k8s:
+    api_version: v1
+    kind: Namespace
+    name: metallb-system
+    state: present
+
+- name: Install MetalLB using Helm
+  community.kubernetes.helm:
+    name: metallb
+    chart_ref: metallb/metallb
+    namespace: metallb-system
+    state: present
+
+- name: Verify MetalLB pods
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: metallb-system
+  register: metallb_pods
+
+- name: Check MetalLB pods status
+  debug:
+    msg: "MetalLB pods: {{ metallb_pods.resources | map(attribute='metadata.name') | list }}"
+
+- name: Wait for 50 seconds before configuring MetalLB ConfigMap
+  pause:
+    seconds: 50
+
+- name: Configure MetalLB ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'templates/metallb_configmap.yml.j2') }}"
+
+## Traefik install & configuration ##
+
+- name: Add MetalLB Helm repository
+  community.kubernetes.helm_repository:
+    name: traefik
+    repo_url: https://traefik.github.io/charts
+
+- name: Update Helm repositories
+  ansible.builtin.command:
+    cmd: helm repo update
+    
+- name: Install Traefik using Helm
+  community.kubernetes.helm:
+    name: traefik
+    chart_ref: traefik/traefik
+    namespace: kube-system
+    release_values:
+      service:
+        type: LoadBalancer
+        annotations:
+          metallb.universe.tf/address-pool: mytraefik-ip
+      ingressClass:
+        enabled: true
+        name: traefik
+      ports:
+        web:
+          address: ":80"
+        websecure:
+          address: ":443"
+      api:
+        insecure: true
+    state: present
+  become: true
+

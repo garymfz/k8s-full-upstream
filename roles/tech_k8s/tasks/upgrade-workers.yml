@@ -1,0 +1,28 @@
+---
+- name: Get current node kubelet version
+  command: kubelet --version
+  register: kubelet_version_result
+  changed_when: false
+
+- name: Parse kubelet version
+  set_fact:
+    current_node_version: "{{ kubelet_version_result.stdout | regex_search('v[0-9]+\\.[0-9]+\\.[0-9]+') }}"
+
+- name: Debug current vs. upgrade version
+  debug:
+    msg: "Current node version: {{ current_node_version }}, Target: {{ upgrade_cluster_version }}"
+
+- name: restart kubelet on worker nodes
+  service:
+    name: kubelet
+    state: restarted
+  when:
+    - verify_upgrade | default("no") == "yes"
+    - current_node_version != upgrade_cluster_version
+
+- name: Upgrade Worker nodes
+  command: kubeadm upgrade node
+  notify: restart kubelet
+  when:
+    - verify_upgrade | default("no") == "yes"
+    - current_node_version != upgrade_cluster_version

@@ -1,0 +1,5 @@
+env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+env_app_environment: "dev"
+env_consul_k8snode_address: "192.168.10.10"
+env_metallb_ip: "192.168.10.50"
+env_kube_vip_ip: "192.168.10.100"

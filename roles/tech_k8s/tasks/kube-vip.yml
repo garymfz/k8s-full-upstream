@@ -1,0 +1,163 @@
+---
+##Needed for control plane HA
+- name: Get network interface name dynamically
+  shell: ip -o -4 route show to default | awk '{print $5}'
+  register: interface_name
+  changed_when: false
+
+- name: Debug retrieved network interface name
+  debug:
+    msg: "Detected network interface: {{ interface_name.stdout }}"
+
+- name: Add kube-vip Helm repository
+  kubernetes.core.helm_repository:
+    name: kube-vip
+    repo_url: "https://kube-vip.github.io/helm-charts/"
+
+- name: Install kube-vip using Helm
+  kubernetes.core.helm:
+    name: kube-vip
+    chart_ref: kube-vip/kube-vip
+    namespace: kube-system
+    create_namespace: false
+    release_values:
+      config:
+        address: "{{ env_kube_vip_ip }}"
+      env:
+        vip_interface: "{{ interface_name.stdout }}"
+        vip_arp: "true"
+        lb_enable: "true"
+        lb_port: "6443"
+        vip_cidr: "32"
+        cp_enable: "true"
+        svc_enable: "false"
+        svc_election: "false"
+        vip_leaderelection: "false"
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+
+- name: Verify kube-vip is running
+  command: kubectl get pods -n kube-system -o wide
+  register: kube_vip_status
+  changed_when: false
+
+- debug:
+    msg: "{{ kube_vip_status.stdout }}"
+
+- name: Restart kube-vip pod
+  shell: kubectl delete pod -n kube-system -l app.kubernetes.io/name=kube-vip
+  changed_when: false
+
+- name: Check if controlPlaneEndpoint is already set to {{ env_kube_vip_ip }} || if FATAL IT'S OKAY ITS SUPPOSED TO RETURN AN ERROR
+  shell: |
+    grep "controlPlaneEndpoint={{ env_kube_vip_ip }}:6443" /etc/kubernetes/kubeadm.conf
+  register: control_plane_endpoint_check
+  ignore_errors: yes
+
+- name: Run kubeadm to apply the new control plane endpoint
+  command: kubeadm init phase kubeconfig all --control-plane-endpoint={{ env_kube_vip_ip }}:6443
+  when: control_plane_endpoint_check.rc is not defined or control_plane_endpoint_check.rc != 0
+  register: kubeadm_result
+
+- name: Modify the kubeadm config to use control plane endpoint
+  lineinfile:
+    path: /etc/kubernetes/kubeadm.conf
+    regexp: '^controlPlaneEndpoint'
+    line: "controlPlaneEndpoint={{ env_kube_vip_ip }}:6443"
+    create: yes
+  when: kubeadm_result.rc is defined and kubeadm_result.rc == 0 
+  notify:
+    - restart kubelet
+
+- name: Restart kubelet service to apply changes
+  service:
+    name: kubelet
+    state: restarted
+  when: control_plane_endpoint_check.rc != 0
+
+- name: Check if Kubernetes API is reachable via VIP || if FATAL IT'S OKAY ITS SUPPOSED TO RETURN AN ERROR
+  command: kubectl --server=https://{{ env_kube_vip_ip }}:6443 get nodes
+  register: kubectl_check
+  ignore_errors: yes
+
+- name: Remove old apiserver certificates
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/kubernetes/pki/apiserver.crt
+    - /etc/kubernetes/pki/apiserver.key
+  when: kubectl_check.failed  # Execute only if kubectl check fails
+
+- name: Regenerate API Server certificate with extra SAN
+  command: kubeadm init phase certs apiserver --apiserver-cert-extra-sans={{ env_kube_vip_ip }}
+  notify: restart kubelet
+  when: kubectl_check.failed  # Execute only if kubectl check fails
+
+#Tune config map to be able to read
+- name: Get the current kubeadm-config ConfigMap
+  kubernetes.core.k8s_info:
+    kind: ConfigMap
+    namespace: kube-system
+    name: kubeadm-config
+  register: kubeadm_config_facts
+  delegate_to: controlplane1
+
+- name: Save kubeadm-config to file
+  copy:
+    content: "{{ kubeadm_config_facts.resources[0].data.ClusterConfiguration | from_yaml | to_nice_yaml }}"
+    dest: "/tmp/kubeadm-config.yaml"
+    mode: '0644'
+  delegate_to: controlplane1
+
+- name: Debug current kubeadm-config content
+  debug:
+    msg: "{{ kubeadm_config_facts.resources[0].data.ClusterConfiguration }}"
+
+- name: Update controlPlaneEndpoint in existing kubeadm-config ConfigMap if not already present
+  lineinfile:
+    path: "/tmp/kubeadm-config.yaml"
+    regexp: '^controlPlaneEndpoint:'
+    line: "controlPlaneEndpoint: \"{{ env_kube_vip_ip }}:6443\""
+    create: yes
+  when: "'controlPlaneEndpoint: \"{{ env_kube_vip_ip }}:6443\"' not in kubeadm_config_facts.resources[0].data.ClusterConfiguration"
+  delegate_to: controlplane1
+
+- name: Check if /tmp/kubeadm-config.yaml file exists
+  stat:
+    path: /tmp/kubeadm-config.yaml
+  register: kubeadm_config_file
+
+- name: Fetch kubeadm-config.yaml from controlplane1 to localhost
+  ansible.builtin.fetch:
+    src: /tmp/kubeadm-config.yaml
+    dest: /tmp/kubeadm-config.yaml
+    flat: yes
+
+- name: Apply updated kubeadm-config ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: kubeadm-config
+        namespace: kube-system
+      data:
+        ClusterConfiguration: "{{ lookup('file', '/tmp/kubeadm-config.yaml') }}"
+  delegate_to: controlplane1
+  when: "'controlPlaneEndpoint: \"{{ env_kube_vip_ip }}:6443\"' not in kubeadm_config_facts.resources[0].data.ClusterConfiguration"
+
+
+
+
+

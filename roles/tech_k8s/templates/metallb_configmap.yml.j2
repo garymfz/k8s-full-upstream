@@ -1,0 +1,17 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: mytraefik-ip
+  namespace: metallb-system
+spec:
+  addresses:
+  - {{ env_metallb_ip }}/32  # IP RANGES
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: my-l2-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - mytraefik-ip

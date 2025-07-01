@@ -1,0 +1,23 @@
+---
+# Dependency needed for kube-vip 
+- name: Ensure IPVS kernel modules are loaded
+  modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - ip_vs
+    - ip_vs_rr
+    - ip_vs_wrr
+    - ip_vs_sh
+    - nf_conntrack
+
+- name: Persist IPVS kernel modules
+  copy:
+    dest: /etc/modules-load.d/ipvs.conf
+    content: |
+      ip_vs
+      ip_vs_rr
+      ip_vs_wrr
+      ip_vs_sh
+      nf_conntrack
+  notify: Reload systemd-modules

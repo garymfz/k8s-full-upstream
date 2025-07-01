@@ -1,0 +1,28 @@
+---
+#This tasks automates the inventory 
+- name: "Ensure inventory file exists"
+  ansible.builtin.file:
+    path: ~/ansible/inventory/{{ env }}/{{ inventory_name }}.ini
+    state: touch
+
+- name: "Clear existing groups in inventory"
+  ansible.builtin.lineinfile:
+    path: ~/ansible/inventory/{{ env }}/{{ inventory_name }}.ini
+    regexp: '^\[master\]|\[workers\]'
+    state: absent
+
+- name: "Write new inventory file"
+  ansible.builtin.copy:
+    dest: ~/ansible/inventory/{{ env }}/{{ inventory_name }}.ini
+    content: |
+      #{{ technology }} HOSTS:
+
+      [master]
+      {% for item in instances_list[:3] %}
+      controlplane{{ loop.index }} ansible_host={{ item.ipv4_address }}
+      {% endfor %}
+
+      [workers]
+      {% for item in instances_list[3:] %}
+      worker{{ loop.index }} ansible_host={{ item.ipv4_address }}
+      {% endfor %}

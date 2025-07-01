@@ -1,0 +1,87 @@
+- name: "INSTALL | Add K8S repo"
+  yum_repository:
+    name: kubernetes
+    description: Kubernetes
+    baseurl: https://pkgs.k8s.io/core:/stable:/v{{ k8sversion }}/rpm/
+    enabled: yes
+    gpgcheck: yes
+    gpgkey: https://pkgs.k8s.io/core:/stable:/v{{ k8sversion }}/rpm/repodata/repomd.xml.key
+    exclude: kubelet kubeadm kubectl cri-tools kubernetes-cni
+
+- name: "INSTALL | KubeLET"
+  dnf:
+    name: kubelet
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: Stop swap for kubelet
+  command: "swapoff -a"
+
+- name: Disable swap permanently, persist reboots
+  replace:
+    path: /etc/fstab
+    regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+    replace: '#\1\2\3swap\4'
+    backup: yes
+
+- name: Start service kubelet, if not started
+  service:
+    name: kubelet
+    enabled: true
+
+- name: "INSTALL | KubeADM"
+  dnf:
+    name: kubeadm
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: "INSTALL | KubeCTL"
+  dnf:
+    name: kubectl
+    state: latest
+    disable_excludes: "kubernetes"
+
+- name: "INSTALL | MODPROBE BRO"
+  command: "modprobe br_netfilter"
+  
+- name: "INSTALL | MODPROBE IP_FORWARD_FILE"
+  shell: "echo 1 > /proc/sys/net/ipv4/ip_forward"
+  become: true
+
+- name: INSTALL | MODPROBE BDRIGE_NF_FILE
+  shell: "echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables"
+  become: true
+
+- name: Check if the node exists in the cluster
+  command: kubectl get node "{{ ansible_hostname }}" --no-headers
+  register: node_check
+  failed_when: node_check.rc not in [0, 1]
+  ignore_errors: true
+  delegate_to: "{{ groups['master'][0] }}"
+
+- name: Initialize Kubernetes master
+  command: "kubeadm init --pod-network-cidr={{ pod_cidr }}"
+  register: kubeadm_output
+  when: node_check.rc != 0
+  ignore_errors: true
+
+- name: Set up kubectl for the current user
+  command: "{{ item }}"
+  with_items:
+    - "mkdir -p $HOME/.kube"
+    - "cp /etc/kubernetes/admin.conf $HOME/.kube/config"
+    - "chown $USER $HOME/.kube/config"
+
+- name: Install Calico network plugin
+  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+- name: Check if control plane node is already tainted
+  command: kubectl get node {{ ansible_hostname }} -o jsonpath='{.spec.taints}'
+  delegate_to: "{{ groups['master'][0] }}"
+  register: taint_check
+  changed_when: false
+
+- name: Taint control plane to avoid pods running on it
+  command: kubectl taint nodes {{ ansible_hostname }} node-role.kubernetes.io/control-plane=:NoSchedule
+  delegate_to: "{{ groups['master'][0] }}"
+  when: "'node-role.kubernetes.io/control-plane' not in taint_check.stdout"

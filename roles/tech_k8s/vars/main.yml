@@ -1,0 +1,21 @@
+---
+# vars file for tech_k8s
+pod_cidr: "10.10.0.0/16"
+k8s_packages:
+  - kubeadm
+  - kubelet
+  - kubectl
+k8s_service_name: kubeadm
+crioversion: "v1.31"
+k8sversion: "1.31"
+# We write here the kubeadm upgrade plan result here "kubeadm upgrade plan"
+upgrade_cluster_version: "v1.31.10"
+verify_upgrade: "no" # Change to yes if we want to perform a cluster upgrade
+trident_version: "24.10.0"
+#Creates an unique storage_class
+storage_class_name: ontap-nas
+backend_type: ontap-nas
+enable_snapshots: true
+mount_options: 
+- nfsvers=3
+

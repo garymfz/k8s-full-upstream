@@ -1,0 +1,150 @@
+#First we install a controlplane and initialize the cluster
+- hosts: controlplane1
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Install CRI-o"
+      import_role:
+        name: tech_k8s
+        tasks_from: cri-o
+
+    - name: "Install Necessary repositories and initialize culuster"
+      import_role:
+        name: tech_k8s
+        tasks_from: master-init
+
+    - name: "Install Helm"
+      import_role:
+       name: tech_helm
+       tasks_from: install
+
+    - name: "IPVs Modules Install"
+      import_role:
+       name: tech_k8s
+       tasks_from: ipvs-modules
+
+    - name: "Install Metric-server"
+      import_role:
+        name: tech_k8s
+        tasks_from: metric-server  
+
+    - name: "Copy kubeconf"
+      import_role:
+        name: tech_k8s
+        tasks_from: copy-kubeconfirst
+
+    - name: "Kube-VIP Cluster Virtual IP Install"
+      import_role:
+       name: tech_k8s
+       tasks_from: kube-vip
+
+    - name: "Copy kubeconf"
+      import_role:
+        name: tech_k8s
+        tasks_from: copy-kubeconf  
+
+#Add n Masters to the cluster
+- hosts: "{{ groups['master'][1:] }}"
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Install CRI-o"
+      import_role:
+        name: tech_k8s
+        tasks_from: cri-o
+
+    - name: "Install Necessary repos and initial configurations for children masters"
+      import_role:
+        name: tech_k8s
+        tasks_from: master-child
+
+    - name: "IPVs Modules Install"
+      import_role:
+       name: tech_k8s
+       tasks_from: ipvs-modules   
+
+    - name: "Join other controlplanes to the cluster"
+      import_role:
+        name: tech_k8s
+        tasks_from: join-master
+
+# Start workers tasks
+- hosts: workers
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Load {{ env }} vars and secrets"
+      import_role:
+        name: secrets
+        tasks_from: include_env_secrets
+
+    - name: "Install CRI-o"
+      import_role:
+        name: tech_k8s
+        tasks_from: cri-o
+        
+    - name: "Install K8S Services"
+      import_role:
+        name: tech_k8s
+        tasks_from: workers
+
+#Install some services for cluster functionality
+- hosts: controlplane1
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Ingress Install"
+      import_role:
+       name: tech_k8s
+       tasks_from: ingress
+
+# Auto Cluster/Node Upgrade
+# First we upgrade the cluster and controlplane1
+- hosts: controlplane1
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "UPGRADE CLUSTER WITH PLAN VERSION"
+      import_role:
+        name: tech_k8s
+        tasks_from: upgrade-cluster
+#Upgrade the missing controlplanes
+- hosts: "{{ groups['master'][1:] }}"
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Upgrade control-plane nodes"
+      import_role:
+        name: tech_k8s
+        tasks_from: upgrade-masters
+
+#Upgrade the workers
+- hosts: workers
+  vars:
+    - env: "{{ lookup('env','ANSIBLE_ENVIRONMENT') }}"
+  vars_files:
+    - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
+    - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
+  tasks:
+    - name: "Upgrade workers version"
+      import_role:
+        name: tech_k8s
+        tasks_from: upgrade-workers

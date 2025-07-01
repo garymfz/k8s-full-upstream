@@ -1,0 +1,20 @@
+---
+- name: Get current Kubernetes version
+  command: kubeadm version -o short
+  register: current_version_result
+  changed_when: false
+
+- name: Set current version fact
+  set_fact:
+    current_cluster_version: "{{ current_version_result.stdout }}"
+
+- name: Debug versions
+  debug:
+    msg: "Current: {{ current_cluster_version }}, Target: {{ upgrade_cluster_version }}"
+
+- name: Upgrade Cluster if already on current version it skips this task
+  command: kubeadm upgrade apply {{ upgrade_cluster_version }} -y
+  notify: restart kubelet
+  when:
+    - verify_upgrade | default("no") == "yes"
+    - current_cluster_version != upgrade_cluster_version
