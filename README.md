@@ -7,10 +7,7 @@ Redhat
 Install a kubernetes cluster on a set inventory "inventory/dev/k8s.ini"
 The Cluster Consist of 3 controlplanes for HA and all the workers you may want.
 It also includes a role task on tech_k8s named auto-inventory.yml to automate your inventory creation based on your own provider (vsphere, nutanix, aws, gcp etc.)
-# Run the playbook (Please specify inventory)
-```shell
-ansible-playbook -i inventory/dev/k8s.ini playbooks/services/k8s-cluster/install/k8s-installcluster.yml
-```
+
 # Components
 Kubernetes version: 1:31
 Container Engine: cri-o
@@ -616,3 +613,7 @@ openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
 - [Consul K8s Documentation](https://www.consul.io/docs/k8s)
 - [MetalLB Configuration](https://metallb.universe.tf/)
 
+#### Run the playbook (Please specify inventory)
+```shell
+ansible-playbook -i inventory/dev/k8s.ini playbooks/services/k8s-cluster/install/k8s-installcluster.yml
+```
