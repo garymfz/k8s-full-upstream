@@ -82,11 +82,6 @@
     - "~/ansible/playbooks/services/k8s-cluster/config/{{ env }}.yml"
     - "~/ansible/playbooks/services/k8s-cluster/config/k8s-cluster.yml"
   tasks:
-    - name: "Load {{ env }} vars and secrets"
-      import_role:
-        name: secrets
-        tasks_from: include_env_secrets
-
     - name: "Install CRI-o"
       import_role:
         name: tech_k8s

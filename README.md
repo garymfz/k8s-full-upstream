@@ -16,6 +16,10 @@ LoadBalancer: MetalLB
 Ingress Controller: Traefik
 External Storage: Trident 4 netapp / Here we install helm and a metrics-server because without the ms we can't install trident.
 
+## Regarding Trident
+If you dont want trident just go to k8sinstallcluster.yml and delete all task that points to trident.
+If you want to use trident, go to k8s-full-upstream\roles\tech_k8s\templates\backend.json.j2 and edit variables to match your own.
+
 # Kubernetes High Availability Cluster Deployment
 
 ## 🏗️ Technical Architecture Overview
