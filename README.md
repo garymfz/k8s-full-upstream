@@ -1,7 +1,8 @@
-# k8s-full-upstream
+
 K8S FULL Upstream Vanilla Ansible Playbook
 ===========
-# Operative system playbook based: Redhat
+# Operative system playbook based:
+Redhat
 # What does this do?
 Install a kubernetes cluster on a set inventory "inventory/dev/k8s.ini"
 The Cluster Consist of 3 controlplanes for HA and all the workers you may want.
